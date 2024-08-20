@@ -1,13 +1,18 @@
+import copy
+import math
 import os
 from typing import Annotated, Iterable, List, Union
 
 import imgui
+import numpy
+from PIL import Image
 from attr import define, field
 from ShaderFlow.Message import ShaderMessage
 from ShaderFlow.Scene import ShaderScene
 from ShaderFlow.Texture import ShaderTexture
 from ShaderFlow.Variable import ShaderVariable
 from typer import Option
+import matplotlib.pyplot as plt
 
 from Broken.Externals.Depthmap import (
     DepthAnythingV1,
@@ -16,10 +21,15 @@ from Broken.Externals.Depthmap import (
     Marigold,
     ZoeDepth,
 )
-from Broken.Externals.Upscaler import BrokenUpscaler, NoUpscaler, Realesr, Waifu2x
 from Broken.Loaders import LoaderImage
 from DepthFlow import DEPTHFLOW
-from DepthFlow.Motion import Animation, Components, Preset, Presets
+from DepthFlow.Animation import (
+    Constant,
+    DepthAnimation,
+    DepthPreset,
+    Linear,
+    Sine,
+)
 from DepthFlow.State import DepthState
 
 DEPTHFLOW_ABOUT = """
@@ -37,7 +47,7 @@ Usage: All commands have a --help option with extensible configuration, and are 
 • Post FX:     [bold blue]depthflow[/bold blue] [blue]dof[/blue] -e [blue]vignette[/blue] -e [blue]main[/blue]
 
 [yellow]Notes:[/yellow]
-• A value of --ssaa 1.5+ is recommended for final exports, real time uses 1.2
+• A --ssaa value of 1.5+ is recommended for final exports, real time uses 1.2
 • The [bold blue]main[/bold blue]'s --quality preset gives little improvement for small movements
 • The rendered video loops perfectly, the period is the main's --time
 • The last two commands must be [bold blue]input[/bold blue] and [bold blue]main[/bold blue] (in order) to work
@@ -54,34 +64,53 @@ class DepthScene(ShaderScene):
     DEPTH_SHADER  = (DEPTHFLOW.RESOURCES.SHADERS/"DepthFlow.glsl")
 
     # DepthFlow objects
-    animation: List[Union[Animation, Preset]] = field(factory=list)
-    estimator: DepthEstimator = field(factory=DepthAnythingV2)
-    upscaler: BrokenUpscaler = field(factory=NoUpscaler)
+    animation: List[Union[DepthAnimation, DepthPreset]] = field(factory=list)
     state: DepthState = field(factory=DepthState)
 
-    def add_animation(self, animation: Union[Animation, Preset]) -> None:
-        self.animation.append(animation)
+    def add_animation(self, animation: DepthAnimation) -> None:
+        self.animation.append(copy.deepcopy(animation))
 
-    def set_upscaler(self, upscaler: BrokenUpscaler) -> None:
-        self.upscaler = upscaler
 
     def set_estimator(self, estimator: DepthEstimator) -> None:
         self.estimator = estimator
 
-    def load_model(self) -> None:
-        self.estimator.load_model()
-
     def input(self,
-        image: Annotated[str, Option("--image", "-i", help="[bold green](🟢 Basic)[/bold green] Background Image [green](Path, URL, NumPy, PIL)[/green]")],
-        depth: Annotated[str, Option("--depth", "-d", help="[bold green](🟢 Basic)[/bold green] Depthmap of the Image [medium_purple3](None to estimate)[/medium_purple3]")]=None,
-    ) -> None:
-        """Load an Image from Path, URL and its estimated Depthmap [green](See 'input --help' for options)[/green]"""
-        image = self.upscaler.upscale(LoaderImage(image))
-        depth = LoaderImage(depth) or self.estimator.estimate(image)
+              image: Annotated[str, Option("--image", "-i", help="[bold green](🟢 Basic)[/bold green] Background Image [green](Path, URL, NumPy, PIL)[/green]")],
+              depth: Annotated[str, Option("--depth", "-d", help="[bold green](🟢 Basic)[/bold green] Depthmap of the Image [medium_purple3](None to estimate)[/medium_purple3]")]=None,
+              ) -> None:
+        """Load an Image from Path, URL and its Depthmap [green](See 'input --help' for options)[/green]"""
+
+        # Load the background image
+        image = LoaderImage(image)
+        plt.imshow(image, cmap='viridis')
+        plt.colorbar()
+        plt.show()
+
+        # Load the depth map from a file instead of estimating
+        depth = Image.open(depth)  # Load the pre-existing depth map image
+        depth = depth.resize((image.width, image.height))  # Resize to match the image size
+        plt.imshow(depth, cmap='viridis')
+        plt.colorbar()
+        plt.show()
+
+        # Continue with the original depth map processing
         self.aspect_ratio = (image.width/image.height)
-        self.normal.from_numpy(self.estimator.normal_map(depth))
+        self.normal.from_numpy(self.normal_map(depth))
         self.image.from_image(image)
         self.depth.from_image(depth)
+
+    def normal_map(self, depth: numpy.ndarray) -> numpy.ndarray:
+        """Estimates a normal map from a depth map using heuristics"""
+        depth = numpy.array(depth)
+        if depth.ndim == 3:
+            depth = depth[..., 0]
+        dx = numpy.arctan2(200*numpy.gradient(depth, axis=1), 1)
+        dy = numpy.arctan2(200*numpy.gradient(depth, axis=0), 1)
+        normal = numpy.dstack((-dx, dy, numpy.ones_like(depth)))
+        return self.normalize(normal).astype(numpy.float32)
+
+    def normalize(self, array: numpy.ndarray) -> numpy.ndarray:
+        return (array - array.min()) / ((array.max() - array.min()) or 1)
 
     def webui(self):
         """Launch a Gradio WebUI for DepthFlow in the browser"""
@@ -90,7 +119,6 @@ class DepthScene(ShaderScene):
 
     def commands(self):
         self.typer.description = DEPTHFLOW_ABOUT
-        self.typer.command(self.load_model, hidden=True)
 
         with self.typer.panel(self.scene_panel):
             self.typer.command(self.state, name="config")
@@ -103,24 +131,12 @@ class DepthScene(ShaderScene):
             self.typer.command(ZoeDepth, post=self.set_estimator)
             self.typer.command(Marigold, post=self.set_estimator)
 
-        with self.typer.panel("⭐️ Upscalers"):
-            self.typer.command(Realesr, post=self.set_upscaler)
-            self.typer.command(Waifu2x, post=self.set_upscaler)
-
-        with self.typer.panel("🚀 Animation (Components, advanced)"):
-            hidden = (not eval(os.getenv("ADVANCED", "0")))
-            for animation in Components.members():
-                self.typer.command(animation, post=self.add_animation, hidden=hidden)
-
-        with self.typer.panel("🔮 Animation (Presets, recommended)"):
-            for preset in Presets.members():
-                self.typer.command(preset, post=self.add_animation)
+        with self.typer.panel("🔮 Animation (Presets)"):
+            ...
 
     def setup(self):
         if self.image.is_empty():
             self.input(image=DepthScene.DEFAULT_IMAGE)
-        if (not self.animation):
-            self.add_animation(Presets.Orbital())
         self.time = 0
 
     def build(self):
@@ -133,14 +149,53 @@ class DepthScene(ShaderScene):
         self.ssaa = 1.2
 
     def update(self):
-        self.state.reset()
+        if (eval(os.getenv("PRESETS", "0"))):
+            self.state.reset()
+            for item in self.animation:
+                item.update(self)
+            return
 
-        for item in self.animation:
-            if issubclass(type(item), Preset):
-                for animation in item.animation():
-                    animation(self)
-            else:
-                item(self)
+        elif eval(os.getenv("VERTICAL", "0")):
+            self.state.offset_y = (2/math.pi) * math.asin(math.cos(self.cycle)) - 0.5
+            self.state.isometric = 0.8
+            self.state.height = 0.15
+            self.state.static = 0.50
+
+        elif eval(os.getenv("HORIZONTAL", "0")):
+            self.state.offset_x = (2/math.pi) * math.asin(math.cos(self.cycle)) - 0.5
+            self.state.isometric = 0.8
+            self.state.height = 0.15
+            self.state.static = 0.50
+
+        elif (eval(os.getenv("ORGANIC", "0"))):
+            self.state.isometric = 0.5
+
+            # In and out dolly zoom
+            self.state.dolly = (0.5 + 0.5*math.cos(self.cycle))
+
+            # Infinite 8 loop shift
+            self.state.offset_x = (0.2 * math.sin(1*self.cycle))
+            self.state.offset_y = (0.2 * math.sin(2*self.cycle))
+
+            # Integral rotation (better for realtime)
+            self.camera.rotate(
+                direction=self.camera.base_z,
+                angle=math.cos(self.cycle)*self.dt*0.4
+            )
+
+            # Fixed known rotation
+            self.camera.rotate2d(1.5*math.sin(self.cycle))
+
+            # Zoom in on the start
+            # self.config.zoom = 1.2 - 0.2*(2/math.pi)*math.atan(self.time)
+
+        # "ORBITAL" default
+        else:
+            self.state.isometric = 0.51 + 0.5 * math.cos(self.cycle/2)**2
+            self.state.offset_x = 0.5 * math.sin(self.cycle)
+            self.state.static = 0.50
+            self.state.height = 0.25
+            self.state.focus = 0.50
 
     def handle(self, message: ShaderMessage):
         ShaderScene.handle(self, message)
