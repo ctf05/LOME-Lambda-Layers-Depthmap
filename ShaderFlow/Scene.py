@@ -670,7 +670,8 @@ class ShaderScene(ShaderModule):
         _index:     Annotated[Optional[int],  Option(hidden=True)]=None,
         _started:   Annotated[Optional[str],  Option(hidden=True)]=None,
         _outputs:   Annotated[Optional[Path], Option(hidden=True)]=None,
-    ) -> Optional[List[Path]]:
+        local_ffmpeg_path: Annotated[Optional[Path], Option(hidden=True)]=None
+             ) -> Optional[List[Path]]:
         """
         Main event loop of this ShaderFlow Scene. Start a realtime window, exports to video, stress test speeds
         """
@@ -726,8 +727,6 @@ class ShaderScene(ShaderModule):
             export = export.with_suffix("." + (export.suffix or format).replace(".", ""))
             export = self.export_name(export)
 
-            # Assuming ffmpeg is in the same directory as your script
-            local_ffmpeg_path = ".\\ffmpeg-master-latest-win64-gpl\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.EXE"
 
             # Initialize BrokenFFmpeg with the local FFmpeg path
             self.ffmpeg = (BrokenFFmpeg(time=self.runtime, ffmpeg_path=str(local_ffmpeg_path)).quiet()

@@ -12,7 +12,6 @@ from ShaderFlow.Scene import ShaderScene
 from ShaderFlow.Texture import ShaderTexture
 from ShaderFlow.Variable import ShaderVariable
 from typer import Option
-import matplotlib.pyplot as plt
 
 from Broken.Externals.Depthmap import (
     DepthAnythingV1,
@@ -82,16 +81,10 @@ class DepthScene(ShaderScene):
 
         # Load the background image
         image = LoaderImage(image)
-        plt.imshow(image, cmap='viridis')
-        plt.colorbar()
-        plt.show()
 
         # Load the depth map from a file instead of estimating
         depth = Image.open(depth)  # Load the pre-existing depth map image
         depth = depth.resize((image.width, image.height))  # Resize to match the image size
-        plt.imshow(depth, cmap='viridis')
-        plt.colorbar()
-        plt.show()
 
         # Continue with the original depth map processing
         self.aspect_ratio = (image.width/image.height)
