@@ -5,7 +5,6 @@ from typing import Annotated, Iterable, List, Union
 
 import imgui
 import numpy
-from PIL import Image
 from attr import define, field
 from ShaderFlow.Message import ShaderMessage
 from ShaderFlow.Scene import ShaderScene
@@ -74,16 +73,16 @@ class DepthScene(ShaderScene):
         self.estimator = estimator
 
     def input(self,
-              image: Annotated[str, Option("--image", "-i", help="[bold green](🟢 Basic)[/bold green] Background Image [green](Path, URL, NumPy, PIL)[/green]")],
-              depth: Annotated[str, Option("--depth", "-d", help="[bold green](🟢 Basic)[/bold green] Depthmap of the Image [medium_purple3](None to estimate)[/medium_purple3]")]=None,
+              image: Annotated[object, Option("--image", "-i", help="[bold green](🟢 Basic)[/bold green] Background Image [green](Path, URL, NumPy, PIL)[/green]")],
+              depth: Annotated[object, Option("--depth", "-d", help="[bold green](🟢 Basic)[/bold green] Depthmap of the Image [medium_purple3](None to estimate)[/medium_purple3]")]=None,
               ) -> None:
         """Load an Image from Path, URL and its Depthmap [green](See 'input --help' for options)[/green]"""
 
         # Load the background image
-        image = LoaderImage(image)
+        #image = LoaderImage(image)
 
         # Load the depth map from a file instead of estimating
-        depth = Image.open(depth)  # Load the pre-existing depth map image
+        #depth = Image.open(depth)  # Load the pre-existing depth map image
         depth = depth.resize((image.width, image.height))  # Resize to match the image size
 
         # Continue with the original depth map processing
