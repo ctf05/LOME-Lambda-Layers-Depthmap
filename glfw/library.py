@@ -70,7 +70,6 @@ def _load_library(library_names, library_file_extensions,
 
 def _load_first_library(library_names, library_file_extensions,
                         library_search_paths):
-    print("rwergre")
     """
     Finds, loads and returns the first found version of the library.
     """
@@ -79,7 +78,6 @@ def _load_first_library(library_names, library_file_extensions,
         library_file_extensions,
         library_search_paths
     )
-    print(candidates)
     library = None
     for filename in candidates:
         if os.path.isfile(filename):
@@ -218,9 +216,9 @@ def _get_package_path_variant(package_path):
         # X11 is the default, even if XDG_SESSION_TYPE is not set
         return os.path.join(package_path, 'x11')
 
-print(os.environ['PYGLFW_LIBRARY'])
 if os.environ.get('PYGLFW_LIBRARY', ''):
     try:
+        print(ctypes.CDLL(os.environ['PYGLFW_LIBRARY']))
         glfw = ctypes.CDLL(os.environ['PYGLFW_LIBRARY'])
     except OSError:
         glfw = None
