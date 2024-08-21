@@ -36,9 +36,9 @@ import os
 import functools
 import sys
 import warnings
-
+print("fewfwef")
 from .library import glfw as _glfw
-
+print(_glfw)
 if _glfw is None:
     raise ImportError("Failed to load GLFW3 shared library.")
 
