@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 
-os.environ['SKIP_TORCH'] = '1'
+#os.environ['SKIP_TORCH'] = '1'
 
 from DepthFlow import DepthScene
 

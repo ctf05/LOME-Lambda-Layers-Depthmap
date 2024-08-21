@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import copy
 import functools
 import sys
@@ -104,8 +105,8 @@ class BrokenSingleton(ABC):
             cls.__instance__ = self
         return cls.__instance__
 
-
 class BrokenFluentBuilder:
+    os.environ['SKIP_TORCH'] = '1'
     """
     Do you ever feel like using a builder-like fluent syntax for changing attributes of an object?
     """
