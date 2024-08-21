@@ -108,6 +108,7 @@ class BrokenSingleton(ABC):
 class BrokenFluentBuilder:
     os.environ['SKIP_TORCH'] = '1'
     os.environ['PYGLFW_LIBRARY'] = os.path.join(os.getcwd(), 'glfw', 'glfw3.dll')
+    print(os.environ['PYGLFW_LIBRARY'])
     """
     Do you ever feel like using a builder-like fluent syntax for changing attributes of an object?
     """
