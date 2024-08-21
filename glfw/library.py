@@ -216,9 +216,14 @@ def _get_package_path_variant(package_path):
         # X11 is the default, even if XDG_SESSION_TYPE is not set
         return os.path.join(package_path, 'x11')
 
+print(os.environ.get('PYGLFW_LIBRARY', ''))
+if os.environ.get('PYGLFW_LIBRARY', ''):
+    print("GLFW Library path is set.")
+else:
+    print("GLFW Library path is not set.")
 if os.environ.get('PYGLFW_LIBRARY', ''):
     try:
-        print(ctypes.CDLL(os.environ['PYGLFW_LIBRARY']))
+        print("Geregerge", ctypes.CDLL(os.environ['PYGLFW_LIBRARY']))
         glfw = ctypes.CDLL(os.environ['PYGLFW_LIBRARY'])
     except OSError:
         glfw = None

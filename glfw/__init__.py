@@ -39,6 +39,7 @@ import warnings
 print("fewfwef")
 from .library import glfw as _glfw
 print(_glfw)
+print(os.environ['PYGLFW_LIBRARY'])
 if _glfw is None:
     raise ImportError("Failed to load GLFW3 shared library.")
 
