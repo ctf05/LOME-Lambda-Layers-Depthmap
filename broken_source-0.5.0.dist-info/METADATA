@@ -1,0 +1,106 @@
+Metadata-Version: 2.3
+Name: broken-source
+Version: 0.5.0
+Summary: 🚀 Broken Source Software Main Library
+Project-URL: GitHub, https://github.com/BrokenSource/BrokenSource
+Project-URL: Changelog, https://brokensrc.dev/news/category/releases
+Project-URL: Funding, https://brokensrc.dev/about/sponsors
+Project-URL: Contact, https://brokensrc.dev/about/contact
+Project-URL: Download, https://brokensrc.dev/get/releases
+Project-URL: Docs, https://brokensrc.dev/broken
+Project-URL: Homepage, https://brokensrc.dev
+Author-email: Tremeschin <29046864+Tremeschin@users.noreply.github.com>
+License-Expression: AGPL-3.0
+Requires-Python: >=3.9
+Requires-Dist: appdirs~=1.4.4
+Requires-Dist: arrow~=1.3.0
+Requires-Dist: attrs~=24.1.0
+Requires-Dist: cachetools~=5.4.0
+Requires-Dist: diskcache~=5.6.3
+Requires-Dist: distro~=1.9.0
+Requires-Dist: dotmap~=1.3.30
+Requires-Dist: loguru~=0.7.2
+Requires-Dist: numpy==1.26.4
+Requires-Dist: pillow~=10.4.0
+Requires-Dist: pydantic~=2.8.2
+Requires-Dist: pyfiglet~=1.0.2
+Requires-Dist: python-dotenv~=1.0.1
+Requires-Dist: python-magic~=0.4.27
+Requires-Dist: requests-cache~=1.2.1
+Requires-Dist: requests~=2.32.3
+Requires-Dist: rich~=13.7.1
+Requires-Dist: setuptools~=72.1.0
+Requires-Dist: thefuzz~=0.22.1
+Requires-Dist: toml~=0.10.2
+Requires-Dist: tqdm~=4.66.5
+Requires-Dist: typer~=0.12.3
+Requires-Dist: uv~=0.2.33
+Requires-Dist: validators~=0.33.0
+Provides-Extra: gradio
+Requires-Dist: gradio==4.22.0; extra == 'gradio'
+Provides-Extra: shaderflow
+Requires-Dist: audioread~=3.0.1; extra == 'shaderflow'
+Requires-Dist: glcontext~=2.5.0; extra == 'shaderflow'
+Requires-Dist: glfw~=2.7.0; extra == 'shaderflow'
+Requires-Dist: imgui~=2.0.0; extra == 'shaderflow'
+Requires-Dist: midi2audio~=0.1.1; extra == 'shaderflow'
+Requires-Dist: mido~=1.3.2; extra == 'shaderflow'
+Requires-Dist: moderngl-window~=2.4.6; extra == 'shaderflow'
+Requires-Dist: moderngl~=5.10.0; extra == 'shaderflow'
+Requires-Dist: numpy-quaternion~=2023.0.4; extra == 'shaderflow'
+Requires-Dist: opencv-contrib-python~=4.10.0.84; extra == 'shaderflow'
+Requires-Dist: opensimplex~=0.4.5.1; extra == 'shaderflow'
+Requires-Dist: pretty-midi~=0.2.10; extra == 'shaderflow'
+Requires-Dist: pyfluidsynth~=1.3.3; extra == 'shaderflow'
+Requires-Dist: pygame~=2.6.0; extra == 'shaderflow'
+Requires-Dist: python-rtmidi~=1.5.8; extra == 'shaderflow'
+Requires-Dist: scipy~=1.14.0; extra == 'shaderflow'
+Requires-Dist: soundcard~=0.4.3; extra == 'shaderflow'
+Requires-Dist: turbopipe==1.0.5; extra == 'shaderflow'
+Requires-Dist: watchdog~=4.0.1; extra == 'shaderflow'
+Provides-Extra: staging
+Requires-Dist: schedule~=1.2.2; extra == 'staging'
+Provides-Extra: website
+Requires-Dist: markdown-callouts~=0.4.0; extra == 'website'
+Requires-Dist: mkdocs-autorefs~=1.0.1; extra == 'website'
+Requires-Dist: mkdocs-gen-files~=0.5.0; extra == 'website'
+Requires-Dist: mkdocs-git-revision-date-localized-plugin~=1.2.6; extra == 'website'
+Requires-Dist: mkdocs-include-markdown-plugin~=6.2.1; extra == 'website'
+Requires-Dist: mkdocs-literate-nav~=0.6.1; extra == 'website'
+Requires-Dist: mkdocs-material[imaging]~=9.5.31; extra == 'website'
+Requires-Dist: mkdocs-minify-plugin~=0.8.0; extra == 'website'
+Requires-Dist: mkdocs-section-index~=0.3.9; extra == 'website'
+Requires-Dist: mkdocs-site-urls~=0.2.0; extra == 'website'
+Requires-Dist: mkdocstrings-python==1.9.0; extra == 'website'
+Requires-Dist: mkdocstrings==0.24.1; extra == 'website'
+Requires-Dist: mkdocs~=1.6.0; extra == 'website'
+Description-Content-Type: text/markdown
+
+<div align="center">
+  <a href="https://brokensrc.dev"><img src="https://raw.githubusercontent.com/BrokenSource/BrokenSource/main/Broken/Resources/Images/Broken.png" width="200"></a>
+  <h2>Broken Source Software</h2>
+  Here lies <b>Broken</b>: The <b>Shared Library</b> and <b>Submodules</b> of all my <b>Projects</b>
+  <br>
+  <br>
+  <a href="https://pypi.org/project/broken-source/"><img src="https://img.shields.io/pypi/v/broken-source?label=PyPI&color=blue"></a>
+  <a href="https://pypi.org/project/broken-source/"><img src="https://img.shields.io/pypi/dw/broken-source?label=Installs&color=blue"></a>
+  <a href="https://github.com/BrokenSource/BrokenSource"><img src="https://img.shields.io/github/v/tag/BrokenSource/BrokenSource?label=GitHub&color=orange"></a>
+  <a href="https://github.com/BrokenSource/BrokenSource/stargazers"><img src="https://img.shields.io/github/stars/BrokenSource/BrokenSource?label=Stars&style=flat&color=orange"></a>
+  <!-- <a href="https://github.com/BrokenSource/BrokenSource/releases/"><img src="https://img.shields.io/github/v/release/BrokenSource/BrokenSource?label=Release&color=light-green"></a> -->
+  <!-- <a href="https://github.com/BrokenSource/BrokenSource/releases/"><img src="https://img.shields.io/github/downloads/BrokenSource/BrokenSource/total?label=Downloads&color=light-green"></a> -->
+  <a href="https://discord.gg/KjqvcYwRHm"><img src="https://img.shields.io/discord/1184696441298485370?label=Discord&style=flat&color=purple"></a>
+</div>
+
+<br>
+
+- **🌟 Framework**: A solution for Unification and Consistency
+- **🚀 Automation**: Spend more time **using** the Projects
+
+<br>
+<br>
+
+<div align="center">
+  <h2>🍁 Learn More 🍁</h2>
+  <h3>✨ Check out my <a href="https://brokensrc.dev"><b>Awesome Website</b></a> instead of a boring Readme ✨</h3>
+  <h5>Installation Guides, Usage, Tips, Code Reference and More!</h5>
+</div>
