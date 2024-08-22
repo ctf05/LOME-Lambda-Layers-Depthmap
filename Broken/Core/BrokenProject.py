@@ -45,10 +45,9 @@ def mkdir(path: Path, resolve: bool = True) -> Path:
     """Make a directory in /tmp/ and return it"""
     # Prepend /tmp/ to the path
     tmp_path = Path('/tmp') / Path(path)
-    
+    print(tmp_path)
     # Resolve the path if requested
     path = tmp_path.resolve() if resolve else tmp_path
-    
     print('mkdir path:', path)
     if not path.exists():
         print(f"Creating directory: {path}")
