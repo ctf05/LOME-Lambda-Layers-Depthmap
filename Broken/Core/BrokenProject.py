@@ -374,11 +374,11 @@ class BrokenProject:
                 exit(0)
 
         # Convenience symlink the project's workspace
-        if Broken.DEVELOPMENT: BrokenPath.symlink(
-            virtual=self.DIRECTORIES.REPOSITORY/"Workspace",
-            real=self.DIRECTORIES.WORKSPACE,
-            echo=False
-        )
+        #if Broken.DEVELOPMENT: BrokenPath.symlink(
+        #    virtual=self.DIRECTORIES.REPOSITORY/"Workspace",
+        #    real=self.DIRECTORIES.WORKSPACE,
+        #    echo=False
+        #)
 
         # Load dotenv files in common directories
         for path in (x for x in flatten(
