@@ -13,3 +13,7 @@ The dockerfile must specify the architecture and python version in both the imag
 Pydantic must be these versions:
 pydantic==1.9.0
 pydantic_core==2.10.1
+
+Usefull command:
+Copy file from EC2 to S3
+aws s3 cp /home/ec2-user/lambda-layer/lambda_layer_output/DepthFlow.zip s3://lome-lambda-layers-deployment-packages
