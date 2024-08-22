@@ -49,8 +49,9 @@ def mkdir(path: Path, resolve: bool = True) -> Path:
     # Resolve the path if requested
     path = tmp_path.resolve() if resolve else tmp_path
     
-    print(path)
+    print('mkdir path:', path)
     if not path.exists():
+        print(f"Creating directory: {path})
         log.info(f"Creating directory: {path}")
         path.mkdir(parents=True, exist_ok=True)
     return path
