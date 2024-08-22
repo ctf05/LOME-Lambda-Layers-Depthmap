@@ -51,7 +51,7 @@ def mkdir(path: Path, resolve: bool = True) -> Path:
     
     print('mkdir path:', path)
     if not path.exists():
-        print(f"Creating directory: {path})
+        print(f"Creating directory: {path}")
         log.info(f"Creating directory: {path}")
         path.mkdir(parents=True, exist_ok=True)
     return path
