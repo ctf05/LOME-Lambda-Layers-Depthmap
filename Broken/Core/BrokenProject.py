@@ -39,10 +39,11 @@ from Broken.Core.BrokenUtils import BrokenAttrs
 def mkdir(path: Path, resolve: bool=True) -> Path:
     """Make a directory and return it"""
     path = Path(path).resolve() if resolve else Path(path)
+    print(path)
     if not path.exists():
         print("ddfsfwefwef")
         log.info(f"Creating directory: {path}")
-        #path.mkdir(parents=True, exist_ok=True)
+        path.mkdir(parents=True, exist_ok=True)
     return path
 
 @define(slots=False)
