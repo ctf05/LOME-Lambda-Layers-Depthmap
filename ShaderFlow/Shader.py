@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Iterable, List, Self, Set, Tuple, Union
 
 import _moderngl
-import imgui
+#import imgui
 import moderngl
 import numpy
 import rich
@@ -375,6 +375,8 @@ class ShaderObject(ShaderModule):
                 self.scene._render_ui()
 
     def __ui__(self) -> None:
+        return
+        '''
         if imgui.button("Reload"):
             self.compile()
         imgui.same_line()
@@ -384,3 +386,4 @@ class ShaderObject(ShaderModule):
             for variable in self._full_pipeline():
                 imgui.text(f"{variable.name.ljust(16)}: {variable.value}")
             imgui.tree_pop()
+            '''

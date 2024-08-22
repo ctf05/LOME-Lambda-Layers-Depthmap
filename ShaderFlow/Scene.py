@@ -30,7 +30,7 @@ import turbopipe
 from attr import Factory, define, field
 from dotmap import DotMap
 from moderngl_window.context.base import BaseWindow as ModernglWindow
-from moderngl_window.integrations.imgui import ModernglWindowRenderer as ModernglImgui
+#from moderngl_window.integrations.imgui import ModernglWindowRenderer as ModernglImgui
 from typer import Option
 
 import Broken
@@ -507,7 +507,7 @@ class ShaderScene(ShaderModule):
     window: ModernglWindow = None
     """ModernGL Window instance at `site-packages/moderngl_window.context.<self.backend>.Window`"""
 
-    imgui: ModernglImgui = None
+    #imgui: ModernglImgui = None
     """ModernGL Imgui integration class bound to the Window"""
 
     imguio: Any = None

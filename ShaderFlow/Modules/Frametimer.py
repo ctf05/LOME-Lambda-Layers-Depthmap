@@ -1,7 +1,7 @@
 from collections import deque
 from typing import Deque
 
-import imgui
+#import imgui
 import numpy
 from attr import Factory, define
 
@@ -61,6 +61,8 @@ class ShaderFrametimer(ShaderModule):
     # ShaderFlow
 
     def ui(self):
+        return
+        '''
         imgui.plot_lines(
             (
                 f"Target  {self.scene.fps:7.3f} fps\n"
@@ -77,3 +79,4 @@ class ShaderFrametimer(ShaderModule):
 
         if (state := imgui.input_float("History (Seconds)", self.history, 0.5, 0.5, "%.2f"))[0]:
             self.history = max(0, state[1])
+            '''

@@ -3,7 +3,7 @@ import math
 import os
 from typing import Annotated, Iterable, List, Union
 
-import imgui
+#import imgui
 import numpy
 from attr import define, field
 from ShaderFlow.Message import ShaderMessage
@@ -201,6 +201,7 @@ class DepthScene(ShaderScene):
         yield from self.state.pipeline()
 
     def ui(self) -> None:
+        '''
         if (state := imgui.slider_float("Height", self.state.height, 0, 1, "%.2f"))[0]:
             self.state.height = max(0, state[1])
         if (state := imgui.slider_float("Static", self.state.static, 0, 1, "%.2f"))[0]:
@@ -233,3 +234,4 @@ class DepthScene(ShaderScene):
             self.state.offset_x = state[1]
         if (state := imgui.slider_float("Offset Y", self.state.offset_y, -2, 2, "%.2f"))[0]:
             self.state.offset_y = state[1]
+            '''
