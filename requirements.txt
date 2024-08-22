@@ -22,8 +22,8 @@ multipledispatch==1.0.0
 numpy==1.26.4
 packaging==24.1
 pillow==10.4.0
-pydantic==2.8.2
-pydantic_core==2.20.1
+pydantic==1.9.0
+pydantic_core==2.10.1
 Pygments==2.18.0
 pyparsing==3.1.2
 pyrr==0.10.3
