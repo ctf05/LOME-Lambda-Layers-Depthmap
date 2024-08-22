@@ -36,12 +36,21 @@ from Broken.Core.BrokenTyper import BrokenTyper
 from Broken.Core.BrokenUtils import BrokenAttrs
 
 
-def mkdir(path: Path, resolve: bool=True) -> Path:
-    """Make a directory and return it"""
-    path = Path(path).resolve() if resolve else Path(path)
+from pathlib import Path
+import logging
+
+log = logging.getLogger(__name__)
+
+def mkdir(path: Path, resolve: bool = True) -> Path:
+    """Make a directory in /tmp/ and return it"""
+    # Prepend /tmp/ to the path
+    tmp_path = Path('/tmp') / Path(path)
+    
+    # Resolve the path if requested
+    path = tmp_path.resolve() if resolve else tmp_path
+    
     print(path)
     if not path.exists():
-        print("ddfsfwefwef")
         log.info(f"Creating directory: {path}")
         path.mkdir(parents=True, exist_ok=True)
     return path
