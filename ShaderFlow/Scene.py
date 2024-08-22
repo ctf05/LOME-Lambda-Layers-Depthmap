@@ -22,7 +22,7 @@ from typing import (
 )
 
 import glfw
-import imgui
+#import imgui
 import moderngl
 import PIL
 import tqdm
@@ -128,6 +128,7 @@ class ShaderScene(ShaderModule):
 
     @OnceTracker.decorator
     def build(self):
+        '''
         imgui.create_context()
         self.imguio = imgui.get_io()
         self.imguio.font_global_scale = 1
@@ -135,6 +136,7 @@ class ShaderScene(ShaderModule):
             str(Broken.BROKEN.RESOURCES.FONTS/"DejaVuSans.ttf"),
             16*self.imguio.font_global_scale,
         )
+        '''
 
         # Default modules
         self.init_window()
@@ -533,7 +535,7 @@ class ShaderScene(ShaderModule):
             backend=backend
         )
         ShaderKeyboard.set_keymap(self.window.keys)
-        self.imgui  = ModernglImgui(self.window)
+        #self.imgui  = ModernglImgui(self.window)
         self.opengl = self.window.ctx
 
         # Bind window events to relay
@@ -1043,7 +1045,7 @@ class ShaderScene(ShaderModule):
     def _render_ui(self):
         if not self.render_ui:
             return
-
+'''
         self._final.texture.fbo().use()
         imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0.0)
         imgui.push_style_var(imgui.STYLE_WINDOW_ROUNDING, 8)
@@ -1109,3 +1111,4 @@ class ShaderScene(ShaderModule):
         imgui.spacing()
         if (state := imgui.slider_float("Quality", self.quality, 0, 100, "%.0f%%"))[0]:
             self.quality = state[1]
+'''
