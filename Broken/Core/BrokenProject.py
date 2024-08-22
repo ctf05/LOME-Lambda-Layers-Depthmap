@@ -41,17 +41,21 @@ import logging
 
 log = logging.getLogger(__name__)
 
+mkdir_counter = 0
+
 def mkdir(path: Path, resolve: bool = True) -> Path:
     """Make a directory in /tmp/ and return it"""
+    global mkdir_counter
+    
     # Check if the original path exists
-    original_path = Path(path).resolve() if resolve else Path(path)
+    original_path = Path(path)
     if original_path.exists():
-        print("Exists already: ", original_path)
+        print("Path already exist: ", original_path)
         return original_path
 
-    # Create a new path in /tmp/ with a random string
-    random_string = str(uuid.uuid4())[:8]  # Use first 8 characters of a UUID
-    tmp_path = Path('/tmp') / random_string
+    # Create a new path in /tmp/ with an incremented counter
+    mkdir_counter += 1
+    tmp_path = Path('/tmp') / f"dir_{mkdir_counter:06d}"  # Pad with zeros for consistent sorting
 
     # Resolve the path if requested
     new_path = tmp_path.resolve() if resolve else tmp_path
