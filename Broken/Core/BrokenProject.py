@@ -43,17 +43,24 @@ log = logging.getLogger(__name__)
 
 def mkdir(path: Path, resolve: bool = True) -> Path:
     """Make a directory in /tmp/ and return it"""
-    # Prepend /tmp/ to the path
-    tmp_path = Path('/tmp') / Path(path)
-    print(tmp_path)
+    # Check if the original path exists
+    original_path = Path(path).resolve() if resolve else Path(path)
+    if original_path.exists():
+        print("Exists already: ", original_path)
+        return original_path
+
+    # Create a new path in /tmp/ with a random string
+    random_string = str(uuid.uuid4())[:8]  # Use first 8 characters of a UUID
+    tmp_path = Path('/tmp') / random_string
+
     # Resolve the path if requested
-    path = tmp_path.resolve() if resolve else tmp_path
-    print('mkdir path:', path)
-    if not path.exists():
-        print(f"Creating directory: {path}")
-        log.info(f"Creating directory: {path}")
-        path.mkdir(parents=True, exist_ok=True)
-    return path
+    new_path = tmp_path.resolve() if resolve else tmp_path
+
+    print(f"Creating directory: {new_path}")
+    log.info(f"Creating directory: {new_path}")
+    new_path.mkdir(parents=True, exist_ok=True)
+
+    return new_path
 
 @define(slots=False)
 class _Directories:
