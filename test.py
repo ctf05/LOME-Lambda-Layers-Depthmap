@@ -2,6 +2,9 @@ import os
 from PIL import Image
 
 #os.environ['SKIP_TORCH'] = '1'
+import glcontext
+print(glcontext.__file__)  # This will show where glcontext is installed
+print(dir(glcontext))  # This will list all available attributes and modules
 
 from DepthFlow import DepthScene
 
