@@ -50,7 +50,7 @@ RUN find /opt/python -type d -name '__pycache__' -exec rm -rf {} + && \
     find /opt/python -type d -name 'tests' -exec rm -rf {} +
 
 # Run the dev import
-RUN python -c "import sys; sys.path.append('/opt/python'); print('Python version:', sys.version); print('Python path:', sys.path); from DepthFlow import DepthScene; print('Import successful on dev branch!')"
+RUN python -c "import sys; sys.path.append('/opt/python'); from DepthFlow import DepthScene; depthflow = DepthScene(backend='headless', visible=False); print('Import successful on dev branch!')"
 
 # Create the ZIP file with maximum compression
 RUN cd /opt && zip -r9 /tmp/lambda-layer.zip python
@@ -78,7 +78,7 @@ ENV PYTHONPATH=/opt/python:/var/runtime:/var/lang/lib/python3.11/site-packages:/
 ENV LD_LIBRARY_PATH=/opt/python/usr/lib:/opt/python/usr/lib64:/var/lang/lib:/lib64:/usr/lib64:/var/runtime:/var/runtime/lib:/var/task:/var/task/lib:/opt/lib
 
 # Run the test import
-RUN python -c "import sys; sys.path.append('/opt/python'); print('Python version:', sys.version); print('Python path:', sys.path); from DepthFlow import DepthScene; print('Import successful on test branch!')"
+RUN python -c "import sys; sys.path.append('/opt/python'); from DepthFlow import DepthScene; depthflow = DepthScene(backend='headless', visible=False); print('Import successful on test branch!')"
 
 # Use a minimal base image for the final stage
 FROM alpine:latest

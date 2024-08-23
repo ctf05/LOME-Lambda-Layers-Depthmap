@@ -22,7 +22,7 @@ from typing import (
 )
 
 import glfw
-#import imgui
+import imgui
 import moderngl
 import PIL
 import tqdm
@@ -30,7 +30,7 @@ import turbopipe
 from attr import Factory, define, field
 from dotmap import DotMap
 from moderngl_window.context.base import BaseWindow as ModernglWindow
-#from moderngl_window.integrations.imgui import ModernglWindowRenderer as ModernglImgui
+from moderngl_window.integrations.imgui import ModernglWindowRenderer as ModernglImgui
 from typer import Option
 
 import Broken
@@ -119,24 +119,21 @@ class ShaderScene(ShaderModule):
         self.build()
 
     def cli(self, *args: List[Union[Any, str]]):
-        """Run this Scene's CLI with added commands with the given arguments
-        ### Warn: Any Release's Scene CLI being run without arguments fallbacks to REPL
-        """
-        if (Broken.RELEASE) and (not bool(sys.argv[1:])) and (not BrokenPlatform.OnLinux):
-            self.typer.repl = True
+        """Run this Scene's CLI with added commands with the given arguments"""
         self.typer(*args)
 
-    @OnceTracker.decorator
+    _built: OnceTracker = Factory(OnceTracker)
+
     def build(self):
-        '''
+        if self._built():
+            return
         imgui.create_context()
         self.imguio = imgui.get_io()
         self.imguio.font_global_scale = 1
         self.imguio.fonts.add_font_from_file_ttf(
             str(Broken.BROKEN.RESOURCES.FONTS/"DejaVuSans.ttf"),
             16*self.imguio.font_global_scale,
-        )
-        '''
+            )
 
         # Default modules
         self.init_window()
@@ -161,7 +158,7 @@ class ShaderScene(ShaderModule):
     time: Seconds = field(default=0.0, converter=float)
     """Virtual time in seconds. Ideally, everything should depend on time, for flexibility"""
 
-    tempo: float = Factory(lambda: DynamicNumber(value=1, frequency=3))
+    speed: float = Factory(lambda: DynamicNumber(value=1, frequency=3))
     """Time scale factor, used for `dt`, which integrates to `time`"""
 
     runtime: Seconds = field(default=10.0, converter=float)
@@ -171,7 +168,7 @@ class ShaderScene(ShaderModule):
     """Target frames per second rendering speed"""
 
     dt: Seconds = field(default=0.0, converter=float)
-    """Virtual delta time since last frame, time scaled by `tempo`. Use `self.rdt` for real delta"""
+    """Virtual delta time since last frame, time scaled by `speed`. Use `self.rdt` for real delta"""
 
     rdt: Seconds = field(default=0.0, converter=float)
     """Real life, physical delta time since last frame. Use `self.dt` for time scaled version"""
@@ -179,7 +176,7 @@ class ShaderScene(ShaderModule):
     @property
     def tau(self) -> float:
         """Normalized time value relative to runtime between 0 and 1"""
-        return (self.time / self.runtime)
+        return ((self.time - self.frametime) / self.runtime)
 
     @property
     def cycle(self) -> float:
@@ -216,7 +213,7 @@ class ShaderScene(ShaderModule):
         self.runtime = (override or minimum)
         for module in (not bool(override)) * self.modules:
             self.runtime = max(self.runtime, module.duration)
-        self.runtime /= self.tempo.value
+        self.runtime /= self.speed.value
         return self.runtime
 
     @property
@@ -272,6 +269,15 @@ class ShaderScene(ShaderModule):
         self.window.visible = value
         self._visible = value
 
+    @property
+    def hidden(self) -> bool:
+        """Realtime window 'is hidden' property"""
+        return not self.visible
+
+    @hidden.setter
+    def hidden(self, value: bool):
+        self.visible = not value
+
     # # Window Fullscreen
 
     _fullscreen: bool = False
@@ -309,14 +315,13 @@ class ShaderScene(ShaderModule):
 
     monitor: int = field(default=os.getenv("MONITOR", 0), converter=int)
 
-    #@property
-    #def glfw_monitor(self) -> Optional[glfw._GLFWmonitor]:
-    #    if (monitors := glfw.get_monitors()):
-    #        return monitors[self.monitor]
+    @property
+    def glfw_monitor(self) -> Optional[glfw._GLFWmonitor]:
+        if (monitors := glfw.get_monitors()):
+            return monitors[self.monitor]
 
     @property
     def glfw_video_mode(self) -> Optional[Dict]:
-        return
         if (monitor := self.glfw_monitor):
             return glfw.get_video_mode(monitor)
 
@@ -325,8 +330,8 @@ class ShaderScene(ShaderModule):
         """Note: Defaults to 60 if no monitor is found or non-real time"""
         if (not self.realtime):
             return 60.0
-        #if (mode := self.glfw_video_mode):
-        #    return mode.refresh_rate or 60.0
+        if (mode := self.glfw_video_mode):
+            return mode.refresh_rate or 60.0
         return 60.0
 
     @property
@@ -454,12 +459,12 @@ class ShaderScene(ShaderModule):
             glfw.set_window_aspect_ratio(self.window._window, num, den)
 
     def resize(self,
-        width: Union[int, float]=Unchanged,
-        height: Union[int, float]=Unchanged,
-        *,
-        ratio: Union[Unchanged, float, str]=Unchanged,
-        scale: float=Unchanged
-    ) -> Tuple[int, int]:
+               width: Union[int, float]=Unchanged,
+               height: Union[int, float]=Unchanged,
+               *,
+               ratio: Union[Unchanged, float, str]=Unchanged,
+               scale: float=Unchanged
+               ) -> Tuple[int, int]:
         """
         Resize the true final rendering resolution of the Scene. Rounded to nearest multiple of 2,
         so FFmpeg is happy, and limited by the monitor resolution if realtime
@@ -508,7 +513,7 @@ class ShaderScene(ShaderModule):
     window: ModernglWindow = None
     """ModernGL Window instance at `site-packages/moderngl_window.context.<self.backend>.Window`"""
 
-    #imgui: ModernglImgui = None
+    imgui: ModernglImgui = None
     """ModernGL Imgui integration class bound to the Window"""
 
     imguio: Any = None
@@ -519,10 +524,9 @@ class ShaderScene(ShaderModule):
         if self.window:
             raise RuntimeError("Window backend cannot be changed after creation")
 
-        # Use EGL for creating a OpenGL context, allows true headless with GPU acceleration
-        # Comments 2 and 6: (https://forums.developer.nvidia.com/t/81412)
-        # Note: For the cloud, see (https://brokensrc.dev/get/docker/)
-        backend = ("egl" if eval(os.getenv("WINDOW_EGL", "1")) else None)
+        # Linux: Use EGL for creating a OpenGL context, allows true headless with GPU acceleration
+        # Note: (https://forums.developer.nvidia.com/t/81412) (https://brokensrc.dev/get/docker/)
+        backend = ("egl" if BrokenPlatform.OnLinux and eval(os.getenv("WINDOW_EGL", "1")) else None)
 
         # Dynamically import the ModernGL Window Backend and instantiate it. Vsync is on our side 😉
         module = f"moderngl_window.context.{denum(self.backend).lower()}"
@@ -536,7 +540,7 @@ class ShaderScene(ShaderModule):
             backend=backend
         )
         ShaderKeyboard.set_keymap(self.window.keys)
-        #self.imgui  = ModernglImgui(self.window)
+        self.imgui  = ModernglImgui(self.window)
         self.opengl = self.window.ctx
 
         # Bind window events to relay
@@ -599,9 +603,9 @@ class ShaderScene(ShaderModule):
 
         # Temporal logic
         dt = min(dt, 1)
-        self.tempo.next(dt=abs(dt))
+        self.speed.next(dt=abs(dt))
         self.vsync.fps = self.fps
-        self.dt    = dt * self.tempo
+        self.dt    = dt * self.speed
         self.rdt   = dt
         self.time += self.dt
 
@@ -648,32 +652,33 @@ class ShaderScene(ShaderModule):
         return path
 
     def main(self,
-        width:      Annotated[int,   Option("--width",      "-w", help="[bold red](🔴 Basic  )[/bold red] Width  of the rendering resolution [medium_purple3](None to keep or find by --ar aspect ratio)[/medium_purple3] [dim](1920 on init)[/dim]")]=None,
-        height:     Annotated[int,   Option("--height",     "-h", help="[bold red](🔴 Basic  )[/bold red] Height of the rendering resolution [medium_purple3](None to keep or find by --ar aspect ratio)[/medium_purple3] [dim](1080 on init)[/dim]")]=None,
-        ratio:      Annotated[str,   Option("--ar",         "-X", help="[bold red](🔴 Basic  )[/bold red] Force resolution aspect ratio [green](examples: '16:9', '16/9', '1.777')[/green] [medium_purple3](None for dynamic)[/medium_purple3]")]=None,
-        scale:      Annotated[float, Option("--scale",      "-x", help="[bold red](🔴 Basic  )[/bold red] Post-multiply width and height by a scale factor [medium_purple3](None to keep)[/medium_purple3] [dim](1.0 on init)[dim]")]=None,
-        fps:        Annotated[float, Option("--fps",        "-f", help="[bold red](🔴 Basic  )[/bold red] Target frames per second [medium_purple3](defaults to the monitor framerate on realtime else 60)[/medium_purple3]")]=None,
-        fullscreen: Annotated[bool,  Option("--fullscreen",       help="[bold red](🔴 Window )[/bold red] Start the real time window in fullscreen mode [medium_purple3](toggle with F11)[/medium_purple3]")]=False,
-        maximize:   Annotated[bool,  Option("--maximize",   "-M", help="[bold red](🔴 Window )[/bold red] Start the real time window in maximized mode")]=False,
-        quality:    Annotated[float, Option("--quality",    "-q", help="[bold yellow](🟡 Quality)[/bold yellow] Global quality level [green](0-100%)[/green] [yellow](if supported by the scene/shader)[/yellow] [medium_purple3](None to keep, default 50%)[/medium_purple3]")]=None,
-        ssaa:       Annotated[float, Option("--ssaa",       "-s", help="[bold yellow](🟡 Quality)[/bold yellow] Fractional super sampling anti aliasing factor [yellow](O(N^2) GPU cost)[/yellow] [medium_purple3](None to keep, default 1.0)[/medium_purple3]")]=None,
-        render:     Annotated[bool,  Option("--render",     "-r", help="[bold green](🟢 Export )[/bold green] Export the Scene to a video file [medium_purple3](defined on --output, and implicit if so)[/medium_purple3]")]=False,
-        output:     Annotated[str,   Option("--output",     "-o", help="[bold green](🟢 Export )[/bold green] Output video file name [green]('absolute', 'relative path', 'plain name')[/green] [dim]($base/$(plain_name or $scene-$date))[/dim]")]=None,
-        base:       Annotated[Path,  Option("--base",       "-D", help="[bold green](🟢 Export )[/bold green] Export base directory [medium_purple3](if plain name)[/medium_purple3]")]=Broken.PROJECT.DIRECTORIES.DATA,
-        time:       Annotated[float, Option("--time",       "-t", help="[bold green](🟢 Export )[/bold green] Total length of the scene/exported video [dim](loop duration)[/dim] [medium_purple3](defaults to 10 or longest module duration)[/medium_purple3]")]=None,
-        tempo:      Annotated[float, Option("--tempo",      "-T", help="[bold green](🟢 Export )[/bold green] Time speed factor of the scene [yellow](final duration is multiplied by [italic]1/tempo[/italic])[/yellow] [dim](1 on init)[/dim]")]=None,
-        format:     Annotated[str,   Option("--format",     "-F", help="[bold green](🟢 Export )[/bold green] Output video container [green]('mp4', 'mkv', 'webm', 'avi, '...')[/green] [yellow](--output one is prioritized)[/yellow]")]="mp4",
-        vcodec:     Annotated[str,   Option("--vcodec",     "-c", help="[bold green](🟢 Export )[/bold green] Video codec [green]('h264', 'h264-nvenc', 'h265, 'hevc-nvenc', 'vp9', 'av1-{aom,svt,nvenc,rav1e}')[/green]")]="h264",
-        acodec:     Annotated[str,   Option("--acodec",     "-a", help="[bold green](🟢 Export )[/bold green] Audio codec [green]('aac', 'mp3', 'flac', 'wav', 'opus', 'ogg', 'copy', 'none', 'empty')[/green]")]="copy",
-        loop:       Annotated[int,   Option("--loop",       "-l", help="[bold blue](🔵 Special)[/bold blue] Exported videos loop copies [yellow](final duration is multiplied by this)[/yellow] [dim](1 on init)[/dim]")]=None,
-        batch:      Annotated[str,   Option("--batch",      "-b", help="[bold blue](🔵 Special)[/bold blue] [dim][WIP] Hyphenated indices range to export multiple videos, if implemented [medium_purple3](1,5-7,10)[/medium_purple3][/dim]")]="0",
-        benchmark:  Annotated[bool,  Option("--benchmark",  "-B", help="[bold blue](🔵 Special)[/bold blue] Benchmark the Scene's speed on raw rendering [medium_purple3](use SKIP_GPU=1 for CPU only benchmark)[/medium_purple3]")]=False,
-        raw:        Annotated[bool,  Option("--raw",              help="[bold blue](🔵 Special)[/bold blue] Send raw OpenGL frames before GPU SSAA to FFmpeg [medium_purple3](enabled if ssaa < 1)[/medium_purple3] [dim](CPU Downsampling)[/dim]")]=False,
-        open:       Annotated[bool,  Option("--open",             help="[bold blue](🔵 Special)[/bold blue] Open the directory of the exports after finishing")]=False,
-        _index:     Annotated[Optional[int],  Option(hidden=True)]=None,
-        _started:   Annotated[Optional[str],  Option(hidden=True)]=None,
-        _outputs:   Annotated[Optional[Path], Option(hidden=True)]=None,
-        local_ffmpeg_path: Annotated[Optional[Path], Option(hidden=True)]=None
+             width:      Annotated[int,   Option("--width",      "-w", help="[bold red](🔴 Basic  )[/bold red] Width  of the rendering resolution [medium_purple3](None to keep or find by --ar aspect ratio)[/medium_purple3] [dim](1920 on init)[/dim]")]=None,
+             height:     Annotated[int,   Option("--height",     "-h", help="[bold red](🔴 Basic  )[/bold red] Height of the rendering resolution [medium_purple3](None to keep or find by --ar aspect ratio)[/medium_purple3] [dim](1080 on init)[/dim]")]=None,
+             ratio:      Annotated[str,   Option("--ar",         "-X", help="[bold red](🔴 Basic  )[/bold red] Force resolution aspect ratio [green](examples: '16:9', '16/9', '1.777')[/green] [medium_purple3](None for dynamic)[/medium_purple3]")]=None,
+             scale:      Annotated[float, Option("--scale",      "-x", help="[bold red](🔴 Basic  )[/bold red] Post-multiply width and height by a scale factor [medium_purple3](None to keep)[/medium_purple3] [dim](1.0 on init)[dim]")]=None,
+             fps:        Annotated[float, Option("--fps",        "-f", help="[bold red](🔴 Basic  )[/bold red] Target frames per second [medium_purple3](defaults to the monitor framerate on realtime else 60)[/medium_purple3]")]=None,
+             fullscreen: Annotated[bool,  Option("--fullscreen",       help="[bold red](🔴 Window )[/bold red] Start the realtime window in fullscreen mode [medium_purple3](toggle with F11)[/medium_purple3]")]=False,
+             maximize:   Annotated[bool,  Option("--maximize",   "-M", help="[bold red](🔴 Window )[/bold red] Start the realtime window in maximized mode")]=False,
+             quality:    Annotated[float, Option("--quality",    "-q", help="[bold yellow](🟡 Quality)[/bold yellow] Global quality level [green](0-100%)[/green] [yellow](if supported by the scene/shader)[/yellow] [medium_purple3](None to keep, default 50%)[/medium_purple3]")]=None,
+             ssaa:       Annotated[float, Option("--ssaa",       "-s", help="[bold yellow](🟡 Quality)[/bold yellow] Super sampling anti aliasing factor [green](0-2)[/green] [yellow](O(N^2) GPU cost)[/yellow] [medium_purple3](None to keep, default 1.0)[/medium_purple3]")]=None,
+             render:     Annotated[bool,  Option("--render",     "-r", help="[bold green](🟢 Export )[/bold green] Export the Scene to a video file [medium_purple3](defined on --output, and implicit if so)[/medium_purple3]")]=False,
+             output:     Annotated[str,   Option("--output",     "-o", help="[bold green](🟢 Export )[/bold green] Output video file name [green]('absolute', 'relative', 'plain' path)[/green] [dim]($base/$(plain or $scene-$date))[/dim]")]=None,
+             base:       Annotated[Path,  Option("--base",       "-D", help="[bold green](🟢 Export )[/bold green] Export base directory [medium_purple3](if plain name)[/medium_purple3]")]=Broken.PROJECT.DIRECTORIES.DATA,
+             time:       Annotated[float, Option("--time",       "-t", help="[bold green](🟢 Export )[/bold green] Total length of the exported video [dim](loop duration)[/dim] [medium_purple3](None to keep, default 10 or longest module)[/medium_purple3]")]=None,
+             speed:      Annotated[float, Option("--speed",      "-S", help="[bold green](🟢 Export )[/bold green] Time speed factor of the scene [yellow](duration is stretched by [italic]1/speed[/italic])[/yellow] [medium_purple3](None to keep)[/medium_purple3] [dim](1 on init)[/dim]")]=None,
+             format:     Annotated[str,   Option("--format",     "-F", help="[bold green](🟢 Export )[/bold green] Output video container [green]('mp4', 'mkv', 'webm', 'avi, '...')[/green] [yellow](--output one is prioritized)[/yellow]")]="mp4",
+             vcodec:     Annotated[str,   Option("--vcodec",     "-c", help="[bold green](🟢 Export )[/bold green] Video codec [green]('h264', 'h264-nvenc', 'h265, 'hevc-nvenc', 'vp9', 'av1-{aom,svt,nvenc,rav1e}')[/green]")]="h264",
+             acodec:     Annotated[str,   Option("--acodec",     "-a", help="[bold green](🟢 Export )[/bold green] Audio codec [green]('aac', 'mp3', 'flac', 'wav', 'opus', 'ogg', 'copy', 'none', 'empty')[/green]")]="copy",
+             loop:       Annotated[int,   Option("--loop",       "-l", help="[bold blue](🔵 Special)[/bold blue] Exported videos loop copies [yellow](final duration is multiplied by this)[/yellow] [dim](1 on init)[/dim]")]=None,
+             benchmark:  Annotated[bool,  Option("--benchmark",  "-B", help="[bold blue](🔵 Special)[/bold blue] Benchmark the Scene's speed on raw rendering [medium_purple3](use SKIP_GPU=1 for CPU only benchmark)[/medium_purple3]")]=False,
+             raw:        Annotated[bool,  Option("--raw",              help="[bold blue](🔵 Special)[/bold blue] Send raw OpenGL frames before GPU SSAA to FFmpeg [medium_purple3](enabled if ssaa < 1)[/medium_purple3] [dim](CPU Downsampling)[/dim]")]=False,
+             open:       Annotated[bool,  Option("--open",             help="[bold blue](🔵 Special)[/bold blue] Open the directory of the exports after finishing rendering")]=False,
+             batch:      Annotated[str,   Option("--batch",      "-b", help="[bold white](🔘 Testing)[/bold white] [dim]Hyphenated indices range to export multiple videos, if implemented [medium_purple3](1,5-7,10)[/medium_purple3][/dim]")]="0",
+             nbuffer:    Annotated[int,   Option("--nbuffer",    "-N", help="[bold white](🔘 Testing)[/bold white] [dim]Number of buffers to use for FFmpeg data feeding[/dim]")]=2,
+             noturbo:    Annotated[bool,  Option("--no-turbo",         help="[bold white](🔘 Testing)[/bold white] [dim]Disables [steel_blue1][link=https://github.com/BrokenSource/TurboPipe]TurboPipe[/link][/steel_blue1] (faster FFmpeg data feeding throughput)[/dim]")]=False,
+             _index:     Annotated[Optional[int],  Option(hidden=True)]=None,
+             _started:   Annotated[Optional[str],  Option(hidden=True)]=None,
+             _outputs:   Annotated[Optional[Path], Option(hidden=True)]=None,
              ) -> Optional[List[Path]]:
         """
         Main event loop of this ShaderFlow Scene. Start a realtime window, exports to video, stress test speeds
@@ -707,7 +712,7 @@ class ShaderScene(ShaderModule):
         self.fullscreen = (fullscreen)
         self.index      = _index
         self.time       = 0
-        self.tempo.set(tempo or self.tempo.value)
+        self.speed.set(speed or self.speed.value)
 
         for module in self.modules:
             module.setup()
@@ -724,21 +729,18 @@ class ShaderScene(ShaderModule):
             self.ssaa = 1
 
         # Configure FFmpeg and Popen it
-        if self.rendering:
+        if (self.rendering):
             export = Path(output or f"({_started}) {self.__name__}")
             export = export if export.is_absolute() else (base/export)
             export = export.with_suffix("." + (export.suffix or format).replace(".", ""))
             export = self.export_name(export)
 
-
-            # Initialize BrokenFFmpeg with the local FFmpeg path
-            self.ffmpeg = (BrokenFFmpeg(time=self.runtime, ffmpeg_path=str(local_ffmpeg_path)).quiet()
+            self.ffmpeg = (BrokenFFmpeg(time=self.runtime).quiet()
                            .pipe_input(pixel_format=("rgba" if self.alpha else "rgb24"),
                                        width=self.width, height=self.height, framerate=self.fps)
                            .scale(width=_width, height=_height)
                            .output(path=export)
                            )
-
 
             # Apply default good codec options on the video
             self.ffmpeg.apply_vcodec_str(vcodec)
@@ -749,12 +751,16 @@ class ShaderScene(ShaderModule):
                 module.ffmpeg(self.ffmpeg)
 
             if self.exporting:
-                buffer = self.opengl.buffer(reserve=self._final.texture.size_t)
                 self.ffmpeg = self.ffmpeg.popen(stdin=PIPE)
+                fileno = self.ffmpeg.stdin.fileno()
+                buffers = [
+                    self.opengl.buffer(reserve=self._final.texture.size_t)
+                    for _ in range(max(2, nbuffer))
+                ]
 
-            # Status tracker
             status = DotMap(
                 start=perf_counter(),
+                frame=0,
                 bar=tqdm.tqdm(
                     total=self.total_frames,
                     desc=f"Scene #{self.index} ({type(self).__name__}) → Video",
@@ -792,21 +798,24 @@ class ShaderScene(ShaderModule):
             if self.realtime:
                 continue
             status.bar.update(1)
+            status.frame += 1
 
             # Write a new frame to FFmpeg
             if self.exporting:
+                buffer = (buffers[status.frame % nbuffer])
+                turbopipe.sync(buffer)
 
                 # Always buffer-proxy, great speed up on Intel ARC and minor elsewhere
                 self._final.texture.fbo().read_into(buffer)
 
                 # TurboPipe can be slower on iGPU systems, make it opt-out
-                if (os.environ.setdefault("TURBOPIPE", "1") == "1"):
-                    turbopipe.pipe(buffer, self.ffmpeg.stdin.fileno())
-                else:
+                if noturbo:
                     self.ffmpeg.stdin.write(buffer.read())
+                else:
+                    turbopipe.pipe(buffer, fileno)
 
             # Finish exporting condition
-            if (status.bar.n < self.total_frames):
+            if (status.frame < self.total_frames):
                 continue
             status.bar.close()
 
@@ -820,7 +829,7 @@ class ShaderScene(ShaderModule):
                 log.info(f"Repeating video ({self.loop-1} times)")
                 export.rename(temporary := export.with_stem(f"{export.stem}-loop"))
                 (BrokenFFmpeg(stream_loop=(self.loop-1)).quiet().copy_audio().copy_video()
-                    .input(temporary).output(export, pixel_format=None).run())
+                 .input(temporary).output(export, pixel_format=None).run())
                 temporary.unlink()
             _outputs.append(export)
 
@@ -829,10 +838,10 @@ class ShaderScene(ShaderModule):
             log.info(f"Finished rendering ({export})", echo=(not self.benchmark))
             log.info((
                 f"• Stats: "
-                f"(Took {status.took:.2f} s) at "
-                f"({self.frame/status.took:.2f} FPS | "
-                f"{self.runtime/status.took:.2f} x Realtime) with "
-                f"({status.bar.n} Total Frames)"
+                f"(Took [cyan]{status.took:.2f}s[/cyan]) at "
+                f"([cyan]{self.frame/status.took:.2f}fps[/cyan] | "
+                f"[cyan]{self.runtime/status.took:.2f}x[/cyan] Realtime) with "
+                f"({status.frame} Total Frames)"
             ))
             break
 
@@ -843,6 +852,7 @@ class ShaderScene(ShaderModule):
 
         if isinstance(message, ShaderMessage.Window.Close):
             log.info(f"{self.who} Received Window Close Event")
+            self.hidden = True
             self.quit(True)
 
         elif isinstance(message, ShaderMessage.Keyboard.KeyDown):
@@ -990,7 +1000,7 @@ class ShaderScene(ShaderModule):
         if self.imguio.want_capture_mouse and self.render_ui:
             return
         elif self.keyboard(ShaderKeyboard.Keys.LEFT_ALT):
-            self.tempo.target += (dy)*0.2
+            self.speed.target += (dy)*0.2
             return
         self.relay(ShaderMessage.Mouse.Scroll(
             **self.__dxdy2dudv__(dx=dx, dy=dy)
@@ -1046,7 +1056,7 @@ class ShaderScene(ShaderModule):
     def _render_ui(self):
         if not self.render_ui:
             return
-'''
+
         self._final.texture.fbo().use()
         imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0.0)
         imgui.push_style_var(imgui.STYLE_WINDOW_ROUNDING, 8)
@@ -1090,11 +1100,11 @@ class ShaderScene(ShaderModule):
 
         # Temporal
         imgui.spacing()
-        if (state := imgui.slider_float("Time Scale", self.tempo.target, -2, 2, "%.2f"))[0]:
-            self.tempo.target = state[1]
+        if (state := imgui.slider_float("Time Scale", self.speed.target, -2, 2, "%.2f"))[0]:
+            self.speed.target = state[1]
         for scale in (options := [-10, -5, -2, -1, 0, 1, 2, 5, 10]):
             if (state := imgui.button(f"{scale}x")):
-                self.tempo.target = scale
+                self.speed.target = scale
             if scale != options[-1]:
                 imgui.same_line()
 
@@ -1112,4 +1122,3 @@ class ShaderScene(ShaderModule):
         imgui.spacing()
         if (state := imgui.slider_float("Quality", self.quality, 0, 100, "%.0f%%"))[0]:
             self.quality = state[1]
-'''
