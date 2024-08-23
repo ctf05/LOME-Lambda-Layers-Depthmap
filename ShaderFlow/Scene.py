@@ -309,13 +309,14 @@ class ShaderScene(ShaderModule):
 
     monitor: int = field(default=os.getenv("MONITOR", 0), converter=int)
 
-    @property
-    def glfw_monitor(self) -> Optional[glfw._GLFWmonitor]:
-        if (monitors := glfw.get_monitors()):
-            return monitors[self.monitor]
+    #@property
+    #def glfw_monitor(self) -> Optional[glfw._GLFWmonitor]:
+    #    if (monitors := glfw.get_monitors()):
+    #        return monitors[self.monitor]
 
     @property
     def glfw_video_mode(self) -> Optional[Dict]:
+        return
         if (monitor := self.glfw_monitor):
             return glfw.get_video_mode(monitor)
 
@@ -324,8 +325,8 @@ class ShaderScene(ShaderModule):
         """Note: Defaults to 60 if no monitor is found or non-real time"""
         if (not self.realtime):
             return 60.0
-        if (mode := self.glfw_video_mode):
-            return mode.refresh_rate or 60.0
+        #if (mode := self.glfw_video_mode):
+        #    return mode.refresh_rate or 60.0
         return 60.0
 
     @property
